@@ -1,0 +1,303 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "## Run this if you need glove libary\n",
+    "#! wget -nc -O - http://nlp.stanford.edu/data/glove.6B.zip | unzip -"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Using TensorFlow backend.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "import re\n",
+    "import numpy as np\n",
+    "\n",
+    "from keras.preprocessing.text import Tokenizer\n",
+    "from keras.preprocessing.sequence import pad_sequences\n",
+    "from keras.utils import to_categorical\n",
+    "from keras.layers import Dense, Input, GlobalMaxPooling1D\n",
+    "from keras.layers import Conv1D, MaxPooling1D, Embedding\n",
+    "from keras.models import Sequential\n",
+    "from keras.initializers import Constant\n",
+    "\n",
+    "BASE_DIR = os.getcwd()\n",
+    "GLOVE_DIR = BASE_DIR\n",
+    "MAX_SEQUENCE_LENGTH = 500\n",
+    "MAX_NUM_WORDS = 20000\n",
+    "EMBEDDING_DIM = 100"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Sample doc"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "doc1 = '''Preamble\n",
+    "1.We, the Heads of State and Government and high-level representatives,having met in Apia from 1 to 4September 2014 at the third International Conference on Small Island Developing States, with the full participation of civil society and relevant stakeholders, reaffirm our commitment to the sustainable development of small island developing  States.  This  can  be  achieved  only  with  a  broad  alliance  of  people, governments, civil society and the private sector all working together to achieve the future we want for present and future generations.\n",
+    "2.We reaffirm the commitments we made at United Nations conferences and summits on sustainable development: the Rio Declaration on Environment and Development,1Agenda21,2the Programme for the Further Implementation of Agenda21,3the Plan of Implementation of the World Summit on Sustainable Development (Johannesburg Plan of Implementation),4including chapter VII, on thesustainable development of small island developing States, and the Johannesburg Declaration on Sustainable Development,5the Programme of Action for the Sustainable Development of Small Island Developing States (Barbados Programme of Action)6and the Mauritius Strategy for the Further Implementation of the Programme of Action for the Sustainable Development of Small Island  Developing  States  (Mauritius  Strategy),7and  the  outcome  document  of  the United  Nations  Conference  on  Sustainable  Development,  entitled “The  future  we want”.8We further underscore that these processes are still being implemented and that there is a need for a more integrated approach to the sustainable development of small island developing States, with the support of the international community and all stakeholders.\n",
+    "'''\n",
+    "doc2 = '''To that end, declare the following:\n",
+    "1.We acknowledge the 60-year legacy and continuing significant role of the United Nations congresses on crime prevention and criminal justice as one of the largest  and  most  diverse  international  forumsfor  the  exchange  of  views  and experiences in research, law and policy and programme development between States, intergovernmental  organizations  and  individual  experts  representing  various professions and disciplines in order to identify emerging trends and issues in the field of crime prevention and criminal justice. We recognize the unique and important contributions of the congresses to law and policy development, as well as to the identification of emerging trends and issues in crime prevention and criminal justice. \n",
+    "2.We reaffirm  the cross-cutting  nature  of  crime  prevention and  criminal justice issues and the consequent need to integrate those issues into the wider agenda of the United Nations in order to enhance system-wide coordination. We look forward to the future contributions of the Commission on Crime Prevention and Criminal Justice with regard to designing and implementing national and international crime prevention and criminal justice policies and programmes, taking into account and building upon the recommendations of the congresses. \n",
+    "'''\n",
+    "docs = [doc1, doc2]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Tokenize and vectorizing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Found 191 unique tokens.\n"
+     ]
+    }
+   ],
+   "source": [
+    "tokenizer = Tokenizer(num_words=MAX_NUM_WORDS)\n",
+    "tokenizer.fit_on_texts(docs)\n",
+    "sequences = tokenizer.texts_to_sequences(docs)\n",
+    "\n",
+    "word_index = tokenizer.word_index\n",
+    "print('Found %s unique tokens.' % len(word_index))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Pad docs for consistent length"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "True"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH)\n",
+    "len(data[0]) == len(data[1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Build Glove index mapping words"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Total words in Glove: 400000\n",
+      "Sample word `million` dim: 100\n"
+     ]
+    }
+   ],
+   "source": [
+    "def glove_indx(gloveFile: str):\n",
+    "    embeddings_index = {}\n",
+    "    with open(os.path.join(GLOVE_DIR, gloveFile)) as f:\n",
+    "        for line in f:\n",
+    "            word, coefs = line.split(maxsplit=1)\n",
+    "            coefs = np.fromstring(coefs, 'f', sep=' ')\n",
+    "            embeddings_index[word] = coefs\n",
+    "    return embeddings_index\n",
+    "\n",
+    "embeddings_index = glove_indx('glove.6B.100d.txt')\n",
+    "sample_word = 'million'\n",
+    "print('Total words in Glove:', len(embeddings_index))\n",
+    "print('Sample word `%s` dim:' % (sample_word) , len(embeddings_index[sample_word]))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Map GloVe to word_index"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "num_words = min(MAX_NUM_WORDS, len(word_index) + 1)\n",
+    "embedding_matrix = np.zeros((num_words, EMBEDDING_DIM))\n",
+    "for word, i in word_index.items():\n",
+    "    if i >= MAX_NUM_WORDS:\n",
+    "        continue\n",
+    "    embedding_vector = embeddings_index.get(word)\n",
+    "    if embedding_vector is not None:\n",
+    "        # words not found in embedding index will be all-zeros.\n",
+    "        embedding_matrix[i] = embedding_vector\n",
+    "        \n",
+    "# remove embeddings_index\n",
+    "del embeddings_index"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Create Embedding layer"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# load pre-trained word embeddings into an Embedding layer\n",
+    "# note that we set trainable = False so as to keep the embeddings fixed\n",
+    "embedding_layer = Embedding(num_words,\n",
+    "                            EMBEDDING_DIM,\n",
+    "                            embeddings_initializer=Constant(embedding_matrix),\n",
+    "                            input_length=MAX_SEQUENCE_LENGTH,\n",
+    "                            trainable=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Use Keras to embed docs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Model: \"sequential_1\"\n",
+      "_________________________________________________________________\n",
+      "Layer (type)                 Output Shape              Param #   \n",
+      "=================================================================\n",
+      "embedding_1 (Embedding)      (None, 500, 100)          19200     \n",
+      "=================================================================\n",
+      "Total params: 19,200\n",
+      "Trainable params: 0\n",
+      "Non-trainable params: 19,200\n",
+      "_________________________________________________________________\n"
+     ]
+    }
+   ],
+   "source": [
+    "model = Sequential()\n",
+    "model.add(embedding_layer)\n",
+    "\n",
+    "# continue to add layers to model as needed\n",
+    "# model.add(Dense(32, input_dim=784))\n",
+    "# model.add(Activation('relu'))\n",
+    "\n",
+    "model.summary()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(2, 500, 100)"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "embedded_doc = model.predict(data)\n",
+    "embedded_doc.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
