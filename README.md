@@ -16,7 +16,7 @@
   * [Dashboard](#dashboard)
 - [Running with Docker](#running-with-docker)
 - [Documentation of all features](#documentation)
-- [Credits](#credits)
+- [Contributors](#contributors)
 - [Disclaimer](#disclaimer)
 
 ## **Installation**
@@ -41,7 +41,9 @@ A dashboard for this project
 
 ## Running with Docker:
 For platform-agnostic, add Dockerfile to project so we can reproduce this project in any environment.
-
+```bash
+# docker run someContainer
+```
 
 ## Documentation
 A list of **all features** of this study:
@@ -50,12 +52,10 @@ A list of **all features** of this study:
 * Feature 3
 
 
-## Credits
-
-### Contributors
+## Contributors
 * Barry Chiu
 * Cat Din Tran
 * Shawne Pierson
 * Gersenda Varisco
 
-> **Disclaimer**<a name="disclaimer" />: Please Note that this is a research project. I am by no means responsible for any usage of this tool. Use on your own behalf. I'm also not responsible if your accounts get banned due to extensive use of this tool.
+> **Disclaimer**<a name="disclaimer" />: Please Note that this is a research project. I am by no means responsible for any usage of this tool. Use on your own behalf. 
