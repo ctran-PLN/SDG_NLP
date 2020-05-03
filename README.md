@@ -16,7 +16,7 @@
   * [Dashboard](#dashboard)
 - [Running with Docker](#running-with-docker)
 - [Documentation of all features](#documentation)
-- [Contributors](#contributors)
+- [Contributors](#contributors-alphabet-order)
 - [Disclaimer](#disclaimer)
 
 ## **Installation**
