@@ -11,6 +11,7 @@
 ## Table of contents
 - [How to install and run](#installation)
   * [Installing requirements](#installation)
+    * [Glove](#glove)
   * [Running it](#running-it)
 - [Externals and additionals tools](#external-tools)
   * [Dashboard](#dashboard)
@@ -20,6 +21,10 @@
 - [Disclaimer](#disclaimer)
 
 ## **Installation**
+### Glove:
+```elm
+wget -nc -O - http://nlp.stanford.edu/data/glove.6B.zip | unzip -
+```
 ```elm
 pip install -r requirements.txt
 ```
