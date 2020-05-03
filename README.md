@@ -14,7 +14,6 @@
   * [Running it](#running-it)
 - [Externals and additionals tools](#external-tools)
   * [Dashboard](#dashboard)
-  * [Web Interface](#gui)
 - [Running with Docker](#docker)
 - [Documentation of all features](#documentation)
 - [Support](#support)
@@ -38,5 +37,5 @@ To run, you'll need to run
 ```
 
 ## External Tools:
-**[Dashboard]
+**[dashboard]
 A dashboard for this project
