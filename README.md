@@ -52,7 +52,7 @@ A list of **all features** of this study:
 * Feature 3
 
 
-## Contributors
+## Contributors (Alphabet order):
 * Barry Chiu
 * Cat Din Tran
 * Shawne Pierson
