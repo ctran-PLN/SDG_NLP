@@ -13,7 +13,7 @@
   * [Installing requirements](#installation)
   * [Running it](#running-it)
 - [Externals and additionals tools](#external-tools)
-  * [Dashboard](#dashboard)
+  * [Dashboard](#my-dashboard)
 - [Running with Docker](#docker)
 - [Documentation of all features](#documentation)
 - [Support](#support)
